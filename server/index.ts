@@ -4,12 +4,14 @@ import pino from "express-pino-logger";
 import webSocket from "ws";
 import * as http from "http";
 import cors from "cors";
-import redis from 'redis'
-import getUniqueID from "./helper/uniqueID";
-import typesDef from "./types/typeDef";
-import { sendMessageToAll, sendMessageToOne } from "./helper/broadcast";
+import redis from "redis";
+import socketio from "socket.io";
+import redisAdapter from "socket.io-redis";
 
 const app = express();
+const redisPublisher = redis.createClient();
+const redisSubscriber = redis.createClient();
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 app.use(pino);
@@ -21,41 +23,29 @@ app.get("/api/greeting", (req, res) => {
 });
 
 const server = http.createServer(app);
+const io = socketio(server);
 
-const wss = new webSocket.Server({ server, clientTracking: true });
+io.adapter(
+  redisAdapter({
+    host: "localhost",
+    port: 6379,
+    pubClient: redisPublisher,
+    subClient: redisSubscriber
+  })
+);
 
-const clients: any = {};
-let counter = 0;
+let _counter = 0;
 
-wss.on("connection", (ws: webSocket, req: http.IncomingMessage) => {
-  const userId = getUniqueID();
-  console.log(
-    new Date() +
-      " Recieved a new connection from " +
-      req.connection.remoteAddress +
-      "."
-  );
-  clients[userId] = ws;
+io.on("connection", socket => {
+  socket.emit("socket connection", { counter: _counter });
 
-  ws.on("message", (message: string) => {
-    console.log(message);
-    const dataFromClient = JSON.parse(message);
-    const json = { type: dataFromClient.type };
-    if (dataFromClient.type === typesDef.COUNTER_CHANGE) {
-      counter = dataFromClient.counter;
-      json.data = { counter };
-      sendMessageToAll(JSON.stringify(json), clients);
-    } else if (dataFromClient.type === typesDef.INITIAL_HANDSHAKE) {
-      sendMessageToOne(
-        JSON.stringify({ data: { counter }, type: typesDef.COUNTER_CHANGE }),
-        ws
-      );
-    }
+  socket.on("counter change", ({ counter }) => {
+    _counter = counter;
+    socket.broadcast.emit("server response", { counter: _counter });
   });
 
-  ws.on("close", connection => {
-    console.log(new Date() + " Peer " + userId + " disconnected.");
-    delete clients[userId];
+  socket.on("disconnect", () => {
+    io.emit("user disconnected");
   });
 });
 

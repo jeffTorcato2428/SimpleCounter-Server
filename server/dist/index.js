@@ -13,13 +13,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var body_parser_1 = __importDefault(require("body-parser"));
 var express_pino_logger_1 = __importDefault(require("express-pino-logger"));
-var ws_1 = __importDefault(require("ws"));
 var http = __importStar(require("http"));
 var cors_1 = __importDefault(require("cors"));
-var uniqueID_1 = __importDefault(require("./helper/uniqueID"));
-var typeDef_1 = __importDefault(require("./types/typeDef"));
-var broadcast_1 = require("./helper/broadcast");
+var redis_1 = __importDefault(require("redis"));
+var socket_io_1 = __importDefault(require("socket.io"));
+var socket_io_redis_1 = __importDefault(require("socket.io-redis"));
 var app = express_1.default();
+var redisPublisher = redis_1.default.createClient();
+var redisSubscriber = redis_1.default.createClient();
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(cors_1.default());
 app.use(express_pino_logger_1.default);
@@ -29,32 +30,23 @@ app.get("/api/greeting", function (req, res) {
     res.send(JSON.stringify({ greeting: "Hello " + name + "!" }));
 });
 var server = http.createServer(app);
-var wss = new ws_1.default.Server({ server: server, clientTracking: true });
-var clients = {};
-var counter = 0;
-wss.on("connection", function (ws, req) {
-    var userId = uniqueID_1.default();
-    console.log(new Date() +
-        " Recieved a new connection from " +
-        req.connection.remoteAddress +
-        ".");
-    clients[userId] = ws;
-    ws.on("message", function (message) {
-        console.log(message);
-        var dataFromClient = JSON.parse(message);
-        var json = { type: dataFromClient.type };
-        if (dataFromClient.type === typeDef_1.default.COUNTER_CHANGE) {
-            counter = dataFromClient.counter;
-            json.data = { counter: counter };
-            broadcast_1.sendMessageToAll(JSON.stringify(json), clients);
-        }
-        else if (dataFromClient.type === typeDef_1.default.INITIAL_HANDSHAKE) {
-            broadcast_1.sendMessageToOne(JSON.stringify({ data: { counter: counter }, type: typeDef_1.default.COUNTER_CHANGE }), ws);
-        }
+var io = socket_io_1.default(server);
+io.adapter(socket_io_redis_1.default({
+    host: "localhost",
+    port: 6379,
+    pubClient: redisPublisher,
+    subClient: redisSubscriber
+}));
+var _counter = 0;
+io.on("connection", function (socket) {
+    socket.emit("socket connection", { counter: _counter });
+    socket.on("counter change", function (_a) {
+        var counter = _a.counter;
+        _counter = counter;
+        socket.broadcast.emit("server response", { counter: _counter });
     });
-    ws.on("close", function (connection) {
-        console.log(new Date() + " Peer " + userId + " disconnected.");
-        delete clients[userId];
+    socket.on("disconnect", function () {
+        io.emit("user disconnected");
     });
 });
 server.listen(3001, function () {
