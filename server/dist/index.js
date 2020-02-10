@@ -10,14 +10,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var dotenv_1 = __importDefault(require("dotenv"));
 var express_1 = __importDefault(require("express"));
 var body_parser_1 = __importDefault(require("body-parser"));
 var express_pino_logger_1 = __importDefault(require("express-pino-logger"));
+var mongoose_1 = require("mongoose");
 var http = __importStar(require("http"));
 var cors_1 = __importDefault(require("cors"));
 var redis_1 = __importDefault(require("redis"));
 var socket_io_1 = __importDefault(require("socket.io"));
 var socket_io_redis_1 = __importDefault(require("socket.io-redis"));
+var Counter_1 = __importDefault(require("./model/Counter"));
+dotenv_1.default.config();
 var app = express_1.default();
 var redisPublisher = redis_1.default.createClient();
 var redisSubscriber = redis_1.default.createClient();
@@ -37,21 +41,37 @@ io.adapter(socket_io_redis_1.default({
     pubClient: redisPublisher,
     subClient: redisSubscriber
 }));
-var _counter = 0;
 io.on("connection", function (socket) {
-    socket.emit("socket connection", { counter: _counter });
+    Counter_1.default.getCounter()
+        .then(function (data) {
+        socket.emit("socket connection", {
+            counter: data
+        });
+    })
+        .catch(function (err) { return console.error(err); });
     socket.on("counter change", function (_a) {
         var counter = _a.counter;
-        _counter = counter;
-        socket.broadcast.emit("server response", { counter: _counter });
+        Counter_1.default.changeCounter(counter)
+            .then(function () {
+            socket.broadcast.emit("server response", { counter: counter });
+        })
+            .catch(function (err) { return console.error(err); });
     });
     socket.on("disconnect", function () {
         io.emit("user disconnected");
     });
 });
-server.listen(3001, function () {
-    return console.log("Express server is running on http://localhost:3001");
-});
+mongoose_1.connect(process.env.MONGO_URL, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true
+})
+    .then(function (result) {
+    console.log("[Connected to database]");
+    server.listen(3001, function () {
+        return console.log("Express server is running on http://localhost:3001");
+    });
+})
+    .catch(function (err) { return console.log(err); });
 process.on("uncaughtException", function (err) {
     console.error(err);
     console.log("Node NOT Exiting...");

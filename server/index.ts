@@ -1,13 +1,16 @@
+import dotenv from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
 import pino from "express-pino-logger";
-import webSocket from "ws";
+import { connect } from "mongoose";
 import * as http from "http";
 import cors from "cors";
 import redis from "redis";
 import socketio from "socket.io";
 import redisAdapter from "socket.io-redis";
+import Counter from "./model/Counter";
 
+dotenv.config();
 const app = express();
 const redisPublisher = redis.createClient();
 const redisSubscriber = redis.createClient();
@@ -34,14 +37,21 @@ io.adapter(
   })
 );
 
-let _counter = 0;
-
 io.on("connection", socket => {
-  socket.emit("socket connection", { counter: _counter });
+  Counter.getCounter()
+    .then(data => {
+      socket.emit("socket connection", {
+        counter: data
+      });
+    })
+    .catch(err => console.error(err));
 
   socket.on("counter change", ({ counter }) => {
-    _counter = counter;
-    socket.broadcast.emit("server response", { counter: _counter });
+    Counter.changeCounter(counter)
+      .then(() => {
+        socket.broadcast.emit("server response", { counter: counter });
+      })
+      .catch(err => console.error(err));
   });
 
   socket.on("disconnect", () => {
@@ -49,9 +59,17 @@ io.on("connection", socket => {
   });
 });
 
-server.listen(3001, () =>
-  console.log(`Express server is running on http://localhost:3001`)
-);
+connect(process.env.MONGO_URL, {
+  useUnifiedTopology: true,
+  useNewUrlParser: true
+})
+  .then((result: any) => {
+    console.log("[Connected to database]");
+    server.listen(3001, () =>
+      console.log(`Express server is running on http://localhost:3001`)
+    );
+  })
+  .catch((err: any) => console.log(err));
 
 process.on("uncaughtException", function(err) {
   console.error(err);
