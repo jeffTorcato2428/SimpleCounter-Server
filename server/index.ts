@@ -4,9 +4,10 @@ import pino from "express-pino-logger";
 import webSocket from "ws";
 import * as http from "http";
 import cors from "cors";
+import redis from 'redis'
 import getUniqueID from "./helper/uniqueID";
 import typesDef from "./types/typeDef";
-import sendMessage from "./helper/broadcast";
+import { sendMessageToAll, sendMessageToOne } from "./helper/broadcast";
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -43,8 +44,13 @@ wss.on("connection", (ws: webSocket, req: http.IncomingMessage) => {
     if (dataFromClient.type === typesDef.COUNTER_CHANGE) {
       counter = dataFromClient.counter;
       json.data = { counter };
+      sendMessageToAll(JSON.stringify(json), clients);
+    } else if (dataFromClient.type === typesDef.INITIAL_HANDSHAKE) {
+      sendMessageToOne(
+        JSON.stringify({ data: { counter }, type: typesDef.COUNTER_CHANGE }),
+        ws
+      );
     }
-    sendMessage(JSON.stringify(json), clients);
   });
 
   ws.on("close", connection => {

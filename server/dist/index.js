@@ -18,7 +18,7 @@ var http = __importStar(require("http"));
 var cors_1 = __importDefault(require("cors"));
 var uniqueID_1 = __importDefault(require("./helper/uniqueID"));
 var typeDef_1 = __importDefault(require("./types/typeDef"));
-var broadcast_1 = __importDefault(require("./helper/broadcast"));
+var broadcast_1 = require("./helper/broadcast");
 var app = express_1.default();
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(cors_1.default());
@@ -46,8 +46,11 @@ wss.on("connection", function (ws, req) {
         if (dataFromClient.type === typeDef_1.default.COUNTER_CHANGE) {
             counter = dataFromClient.counter;
             json.data = { counter: counter };
+            broadcast_1.sendMessageToAll(JSON.stringify(json), clients);
         }
-        broadcast_1.default(JSON.stringify(json), clients);
+        else if (dataFromClient.type === typeDef_1.default.INITIAL_HANDSHAKE) {
+            broadcast_1.sendMessageToOne(JSON.stringify({ data: { counter: counter }, type: typeDef_1.default.COUNTER_CHANGE }), ws);
+        }
     });
     ws.on("close", function (connection) {
         console.log(new Date() + " Peer " + userId + " disconnected.");
