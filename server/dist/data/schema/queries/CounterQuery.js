@@ -39,45 +39,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var CounterSchema_1 = __importDefault(require("./CounterSchema"));
-var Counter = /** @class */ (function () {
-    function Counter(_id, counter) {
-        this._id = _id;
-        this.counter = counter;
+var graphql_1 = require("graphql");
+var nodes_1 = require("../nodes");
+var CounterSchema_1 = __importDefault(require("../../../model/CounterSchema"));
+var CounterQuery = {
+    type: nodes_1.GraphQLCounter,
+    args: {
+        id: {
+            type: graphql_1.GraphQLString
+        }
+    },
+    resolve: function (obj, _a) {
+        var id = _a.id;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var counterDoc, error;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, CounterSchema_1.default.findById(id)];
+                    case 1:
+                        counterDoc = _b.sent();
+                        if (!counterDoc) {
+                            error = new Error("No counter found");
+                            error.code = 401;
+                            throw error;
+                        }
+                        return [2 /*return*/, counterDoc];
+                }
+            });
+        });
     }
-    return Counter;
-}());
-Counter.changeCounter = function (_counter) { return __awaiter(void 0, void 0, void 0, function () {
-    var doc;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, CounterSchema_1.default.findById("5e413c741c9d440000647d78")];
-            case 1:
-                doc = _a.sent();
-                if (!doc) {
-                    throw Error("No document");
-                }
-                doc.counter = _counter;
-                return [4 /*yield*/, doc.save()];
-            case 2:
-                _a.sent();
-                return [2 /*return*/, doc._doc];
-        }
-    });
-}); };
-Counter.getCounter = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var doc;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, CounterSchema_1.default.findById("5e413c741c9d440000647d78")];
-            case 1:
-                doc = _a.sent();
-                if (!doc) {
-                    throw Error("No document");
-                }
-                return [2 /*return*/, doc._doc.counter];
-        }
-    });
-}); };
-exports.default = Counter;
-//# sourceMappingURL=Counter.js.map
+};
+exports.CounterQuery = CounterQuery;
+//# sourceMappingURL=CounterQuery.js.map

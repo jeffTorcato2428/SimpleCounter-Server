@@ -8,7 +8,10 @@ import cors from "cors";
 import redis from "redis";
 import socketio from "socket.io";
 import redisAdapter from "socket.io-redis";
+import graphqlHTTP from "express-graphql";
+
 import Counter from "./model/Counter";
+import { schema } from "./data/schema";
 
 dotenv.config();
 const app = express();
@@ -19,14 +22,37 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 app.use(pino);
 
+app.get("/", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(JSON.stringify({ greeting: `Sup!` }));
+});
+
 app.get("/api/greeting", (req, res) => {
   const name = req.query.name || "World";
   res.setHeader("Content-Type", "application/json");
   res.send(JSON.stringify({ greeting: `Hello ${name}!` }));
 });
 
+app.use(
+  "/api/graphql",
+  graphqlHTTP({
+    schema: schema,
+    pretty: true,
+    graphiql: true,
+    customFormatErrorFn: err => {
+      if (!err.originalError) {
+        return err;
+      }
+      const data = err.originalError.data;
+      const message = err.message || "An error occured.";
+      const code = err.originalError.code || 500;
+      return { message: message, status: code, data: data };
+    }
+  })
+);
+
 const server = http.createServer(app);
-const io = socketio(server);
+/*const io = socketio(server);
 
 io.adapter(
   redisAdapter({
@@ -57,7 +83,11 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     io.emit("user disconnected");
   });
-});
+});*/
+
+if (typeof process.env.MONGO_URL == "undefined") {
+  throw new Error("MongoDB Url is not set");
+}
 
 connect(process.env.MONGO_URL, {
   useUnifiedTopology: true,
@@ -65,8 +95,9 @@ connect(process.env.MONGO_URL, {
 })
   .then((result: any) => {
     console.log("[Connected to database]");
-    server.listen(3001, () =>
-      console.log(`Express server is running on http://localhost:3001`)
+    const port = process.env.PORT;
+    server.listen(port, () =>
+      console.log(`Express server is running on http://localhost:${port}`)
     );
   })
   .catch((err: any) => console.log(err));

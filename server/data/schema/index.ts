@@ -1,0 +1,25 @@
+import { GraphQLObjectType, GraphQLSchema } from 'graphql'
+import { CounterQuery } from './queries/CounterQuery'
+import { nodeField } from './nodes'
+import { UpdateCounterMutation } from './mutations/UpdateCounterMutation'
+
+
+const RootMutation = new GraphQLObjectType({
+    name: "Mutation",
+    fields: {
+        updateCounter: UpdateCounterMutation,
+        node: nodeField
+    }
+})
+
+const RootQuery = new GraphQLObjectType({
+    name: "Query",
+    fields: {
+        counter: CounterQuery
+    }
+})
+
+export const schema = new GraphQLSchema({
+    query: RootQuery,
+    mutation: RootMutation
+})

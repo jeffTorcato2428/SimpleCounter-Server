@@ -18,9 +18,6 @@ var mongoose_1 = require("mongoose");
 var http = __importStar(require("http"));
 var cors_1 = __importDefault(require("cors"));
 var redis_1 = __importDefault(require("redis"));
-var socket_io_1 = __importDefault(require("socket.io"));
-var socket_io_redis_1 = __importDefault(require("socket.io-redis"));
-var Counter_1 = __importDefault(require("./model/Counter"));
 dotenv_1.default.config();
 var app = express_1.default();
 var redisPublisher = redis_1.default.createClient();
@@ -28,48 +25,77 @@ var redisSubscriber = redis_1.default.createClient();
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(cors_1.default());
 app.use(express_pino_logger_1.default);
+app.get("/", function (req, res) {
+    // res.setHeader("Content-Type", "application/json");
+    //res.send(JSON.stringify({ greeting: `Sup!` }));
+    res.send('Hello from the other side!');
+});
 app.get("/api/greeting", function (req, res) {
     var name = req.query.name || "World";
     res.setHeader("Content-Type", "application/json");
     res.send(JSON.stringify({ greeting: "Hello " + name + "!" }));
 });
+// app.use(
+//   "/api/graphql",
+//   graphqlHTTP({
+//     schema: schema,
+//     pretty: true,
+//     graphiql: true,
+//     customFormatErrorFn: err => {
+//       if (!err.originalError) {
+//         return err;
+//       }
+//       const data = err.originalError.data;
+//       const message = err.message || "An error occured.";
+//       const code = err.originalError.code || 500;
+//       return { message: message, status: code, data: data };
+//     }
+//   })
+// );
 var server = http.createServer(app);
-var io = socket_io_1.default(server);
-io.adapter(socket_io_redis_1.default({
+var port = process.env.PORT;
+server.listen(3002);
+/*const io = socketio(server);
+
+io.adapter(
+  redisAdapter({
     host: "localhost",
     port: 6379,
     pubClient: redisPublisher,
     subClient: redisSubscriber
-}));
-io.on("connection", function (socket) {
-    Counter_1.default.getCounter()
-        .then(function (data) {
-        socket.emit("socket connection", {
-            counter: data
-        });
+  })
+);
+
+io.on("connection", socket => {
+  Counter.getCounter()
+    .then(data => {
+      socket.emit("socket connection", {
+        counter: data
+      });
     })
-        .catch(function (err) { return console.error(err); });
-    socket.on("counter change", function (_a) {
-        var counter = _a.counter;
-        Counter_1.default.changeCounter(counter)
-            .then(function () {
-            socket.broadcast.emit("server response", { counter: counter });
-        })
-            .catch(function (err) { return console.error(err); });
-    });
-    socket.on("disconnect", function () {
-        io.emit("user disconnected");
-    });
-});
+    .catch(err => console.error(err));
+
+  socket.on("counter change", ({ counter }) => {
+    Counter.changeCounter(counter)
+      .then(() => {
+        socket.broadcast.emit("server response", { counter: counter });
+      })
+      .catch(err => console.error(err));
+  });
+
+  socket.on("disconnect", () => {
+    io.emit("user disconnected");
+  });
+});*/
+if (typeof process.env.MONGO_URL == "undefined") {
+    throw new Error("MongoDB Url is not set");
+}
 mongoose_1.connect(process.env.MONGO_URL, {
     useUnifiedTopology: true,
     useNewUrlParser: true
 })
     .then(function (result) {
     console.log("[Connected to database]");
-    server.listen(3001, function () {
-        return console.log("Express server is running on http://localhost:3001");
-    });
 })
     .catch(function (err) { return console.log(err); });
 process.on("uncaughtException", function (err) {

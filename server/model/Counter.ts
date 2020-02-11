@@ -1,8 +1,16 @@
 import CounterSchema from "./CounterSchema";
+import { Types } from "mongoose";
 
 class Counter {
-  static changeCounter: (_counter: any) => Promise<void>;
+  _id: Types.ObjectId;
+  counter: number;
+  static changeCounter: (_counter: any) => Promise<any>;
   static getCounter: () => Promise<any>;
+
+  constructor(_id: Types.ObjectId, counter: number) {
+    this._id = _id;
+    this.counter = counter;
+  }
 }
 
 Counter.changeCounter = async _counter => {
@@ -12,6 +20,7 @@ Counter.changeCounter = async _counter => {
   }
   doc.counter = _counter;
   await doc.save();
+  return doc._doc
 };
 
 Counter.getCounter = async () => {
@@ -19,7 +28,7 @@ Counter.getCounter = async () => {
   if (!doc) {
     throw Error("No document");
   }
-  return doc._doc.counter
+  return doc._doc.counter;
 };
 
 export default Counter;

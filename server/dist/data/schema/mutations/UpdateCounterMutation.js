@@ -39,45 +39,65 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var CounterSchema_1 = __importDefault(require("./CounterSchema"));
-var Counter = /** @class */ (function () {
-    function Counter(_id, counter) {
-        this._id = _id;
-        this.counter = counter;
+var graphql_relay_1 = require("graphql-relay");
+var graphql_1 = require("graphql");
+var Counter_1 = __importDefault(require("../../../model/Counter"));
+var CounterSchema_1 = __importDefault(require("../../../model/CounterSchema"));
+var CounterInputDataType = new graphql_1.GraphQLInputObjectType({
+    name: "CounterInputData",
+    fields: {
+        counter: {
+            type: new graphql_1.GraphQLNonNull(graphql_1.GraphQLInt)
+        }
     }
-    return Counter;
-}());
-Counter.changeCounter = function (_counter) { return __awaiter(void 0, void 0, void 0, function () {
-    var doc;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, CounterSchema_1.default.findById("5e413c741c9d440000647d78")];
-            case 1:
-                doc = _a.sent();
-                if (!doc) {
-                    throw Error("No document");
-                }
-                doc.counter = _counter;
-                return [4 /*yield*/, doc.save()];
-            case 2:
-                _a.sent();
-                return [2 /*return*/, doc._doc];
+});
+var UpdateCounterMutation = graphql_relay_1.mutationWithClientMutationId({
+    name: "UpdateCounter",
+    inputFields: {
+        counterInput: {
+            type: graphql_1.GraphQLNonNull(CounterInputDataType)
         }
-    });
-}); };
-Counter.getCounter = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var doc;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, CounterSchema_1.default.findById("5e413c741c9d440000647d78")];
-            case 1:
-                doc = _a.sent();
-                if (!doc) {
-                    throw Error("No document");
-                }
-                return [2 /*return*/, doc._doc.counter];
+    },
+    outputFields: {
+        counter: {
+            type: new graphql_1.GraphQLNonNull(graphql_1.GraphQLInt),
+            resolve: function (_a) {
+                var _id = _a._id;
+                return __awaiter(void 0, void 0, void 0, function () {
+                    var counter;
+                    return __generator(this, function (_b) {
+                        switch (_b.label) {
+                            case 0: return [4 /*yield*/, CounterSchema_1.default.findById(_id)];
+                            case 1:
+                                counter = _b.sent();
+                                if (!counter) {
+                                    throw new Error("");
+                                }
+                                return [2 /*return*/, {
+                                        node: counter
+                                    }];
+                        }
+                    });
+                });
+            }
         }
-    });
-}); };
-exports.default = Counter;
-//# sourceMappingURL=Counter.js.map
+    },
+    mutateAndGetPayload: function (_a) {
+        var counterInput = _a.counterInput;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var counter;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        console.log(counterInput);
+                        return [4 /*yield*/, Counter_1.default.changeCounter(counterInput)];
+                    case 1:
+                        counter = _b.sent();
+                        return [2 /*return*/, { counter: counter }];
+                }
+            });
+        });
+    }
+});
+exports.UpdateCounterMutation = UpdateCounterMutation;
+//# sourceMappingURL=UpdateCounterMutation.js.map
