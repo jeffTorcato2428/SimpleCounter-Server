@@ -34,6 +34,6 @@ input UpdateCounterInput {
 }
 
 type UpdateCounterPayload {
-  counter: Counter!
+  newCounter: Counter!
   clientMutationId: String
 }
