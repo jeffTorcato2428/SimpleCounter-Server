@@ -1,12 +1,12 @@
 import { mutationWithClientMutationId } from "graphql-relay";
 import { GraphQLInputObjectType, GraphQLNonNull, GraphQLInt } from "graphql";
 
-import {} from "../nodes";
+import { GraphQLCounter } from "../nodes";
 import Counter from "../../../model/Counter";
-import CounterSchema from "../../../model/CounterSchema";
+import CounterSchema, { ICounter } from "../../../model/CounterSchema";
 
 type Payload = {
-  counter: object;
+  counter: ICounter;
 };
 
 const CounterInputDataType = new GraphQLInputObjectType({
@@ -26,23 +26,16 @@ const UpdateCounterMutation = mutationWithClientMutationId({
     }
   },
   outputFields: {
-    counter: {
-      type: new GraphQLNonNull(GraphQLInt),
-      resolve: async ({ _id }) => {
-        const counter = await CounterSchema.findById(_id);
-        if (!counter) {
-          throw new Error(``);
-        }
-        return {
-          node: counter
-        };
-      }
+    newCounter: {
+      type: new GraphQLNonNull(GraphQLCounter),
+      resolve: async ({ _id }) => await Counter.getCounter(_id)
     }
   },
-  mutateAndGetPayload: async ({ counterInput }): Promise<Payload> => {
-    console.log(counterInput);
+  mutateAndGetPayload: async ({ counterInput }): Promise<any> => {
+    //console.log(counterInput);
     const counter = await Counter.changeCounter(counterInput);
-    return { counter };
+    //console.log(counter)
+    return { _id: counter._id.toString() };
   }
 });
 

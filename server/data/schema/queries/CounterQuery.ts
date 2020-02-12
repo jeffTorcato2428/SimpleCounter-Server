@@ -9,11 +9,11 @@ const CounterQuery = {
       type: GraphQLString
     }
   },
-  resolve: async (obj, { id }): Promise<any> => {
-    const counterDoc = await CounterSchema.findById(id);
+  resolve: async (obj: any, args:any , ctx: any): Promise<any> => {
+    const counterDoc = await CounterSchema.findById(args.id);
+    //console.log(counterDoc);
     if (!counterDoc) {
       const error = new Error("No counter found");
-      error.code = 401;
       throw error;
     }
     return counterDoc;

@@ -7,15 +7,15 @@ import { UpdateCounterMutation } from './mutations/UpdateCounterMutation'
 const RootMutation = new GraphQLObjectType({
     name: "Mutation",
     fields: {
-        updateCounter: UpdateCounterMutation,
-        node: nodeField
+        updateCounter: UpdateCounterMutation
     }
 })
 
 const RootQuery = new GraphQLObjectType({
     name: "Query",
     fields: {
-        counter: CounterQuery
+        counter: CounterQuery,
+        node: nodeField
     }
 })
 

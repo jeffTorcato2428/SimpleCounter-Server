@@ -8,7 +8,7 @@ const { nodeInterface, nodeField } = nodeDefinitions(
     const { type, id }: { id: string; type: string } = fromGlobalId(globalId);
 
     if (type === "Counter") {
-      return Counter.getCounter();
+      return Counter.getCounter(id);
     }
 
     return null;

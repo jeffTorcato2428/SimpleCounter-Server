@@ -1,1 +1,0 @@
-{"version":3,"file":"CounterSchema.js","sourceRoot":"","sources":["../../model/CounterSchema.ts"],"names":[],"mappings":";;AAAA,qCAAyC;AAEzC,IAAM,aAAa,GAAG,IAAI,iBAAM,CAAC;IAC/B,OAAO,EAAE;QACP,IAAI,EAAE,MAAM;QACZ,QAAQ,EAAE,IAAI;KACf;CACF,CAAC,CAAC;AACH,kBAAe,gBAAK,CAAC,SAAS,EAAE,aAAa,CAAC,CAAC"}

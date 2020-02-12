@@ -12,6 +12,7 @@ import graphqlHTTP from "express-graphql";
 
 import Counter from "./model/Counter";
 import { schema } from "./data/schema";
+import { GraphQLError } from "graphql";
 
 dotenv.config();
 const app = express();
@@ -19,8 +20,9 @@ const redisPublisher = redis.createClient();
 const redisSubscriber = redis.createClient();
 
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json())
 app.use(cors());
-app.use(pino);
+//app.use(pino());
 
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -39,20 +41,19 @@ app.use(
     schema: schema,
     pretty: true,
     graphiql: true,
-    customFormatErrorFn: err => {
+    customFormatErrorFn: (err: GraphQLError) => {
       if (!err.originalError) {
         return err;
       }
-      const data = err.originalError.data;
       const message = err.message || "An error occured.";
-      const code = err.originalError.code || 500;
-      return { message: message, status: code, data: data };
+      const data = err.originalError.stack
+      return { message: message, data: data };
     }
   })
 );
 
 const server = http.createServer(app);
-/*const io = socketio(server);
+const io = socketio(server);
 
 io.adapter(
   redisAdapter({
@@ -64,10 +65,11 @@ io.adapter(
 );
 
 io.on("connection", socket => {
-  Counter.getCounter()
+  const cid = "5e413c741c9d440000647d78"
+  Counter.getCounter(cid)
     .then(data => {
       socket.emit("socket connection", {
-        counter: data
+        counter: data.counter
       });
     })
     .catch(err => console.error(err));
@@ -83,7 +85,7 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     io.emit("user disconnected");
   });
-});*/
+});
 
 if (typeof process.env.MONGO_URL == "undefined") {
   throw new Error("MongoDB Url is not set");
