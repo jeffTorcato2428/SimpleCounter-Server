@@ -18,7 +18,7 @@ Counter.changeCounter = async _counter => {
   if (!counterDoc) {
     throw Error("No document");
   }
-  counterDoc.counter = _counter.counter;
+  counterDoc.counter = _counter;
   await counterDoc.save();
   return { ...counterDoc._doc };
 };

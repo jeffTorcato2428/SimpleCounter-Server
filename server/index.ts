@@ -76,8 +76,8 @@ io.on("connection", socket => {
 
   socket.on("counter change", ({ counter }) => {
     Counter.changeCounter(counter)
-      .then(() => {
-        socket.broadcast.emit("server response", { counter: counter });
+      .then((data) => {
+        socket.broadcast.emit("server response", { counter: data.counter });
       })
       .catch(err => console.error(err));
   });
