@@ -20,7 +20,7 @@ const redisPublisher = redis.createClient();
 const redisSubscriber = redis.createClient();
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 app.use(cors());
 //app.use(pino());
 
@@ -46,7 +46,7 @@ app.use(
         return err;
       }
       const message = err.message || "An error occured.";
-      const data = err.originalError.stack
+      const data = err.originalError.stack;
       return { message: message, data: data };
     }
   })
@@ -65,7 +65,7 @@ io.adapter(
 );
 
 io.on("connection", socket => {
-  const cid = "5e413c741c9d440000647d78"
+  const cid = "5e413c741c9d440000647d78";
   Counter.getCounter(cid)
     .then(data => {
       socket.emit("socket connection", {
@@ -76,7 +76,7 @@ io.on("connection", socket => {
 
   socket.on("counter change", ({ counter }) => {
     Counter.changeCounter(counter)
-      .then((data) => {
+      .then(data => {
         socket.broadcast.emit("server response", { counter: data.counter });
       })
       .catch(err => console.error(err));
