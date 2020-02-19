@@ -2,6 +2,7 @@ import { GraphQLObjectType, GraphQLSchema } from 'graphql'
 import { CounterQuery } from './queries/CounterQuery'
 import { nodeField } from './nodes'
 import { UpdateCounterMutation } from './mutations/UpdateCounterMutation'
+import RootSubscription from './subscriptions/CounterChanged'
 
 
 const RootMutation = new GraphQLObjectType({
@@ -21,5 +22,6 @@ const RootQuery = new GraphQLObjectType({
 
 export const schema = new GraphQLSchema({
     query: RootQuery,
-    mutation: RootMutation
+    mutation: RootMutation,
+    subscription: RootSubscription
 })

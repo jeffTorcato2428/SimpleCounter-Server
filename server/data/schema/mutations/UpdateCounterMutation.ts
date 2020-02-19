@@ -1,5 +1,6 @@
 import { mutationWithClientMutationId } from "graphql-relay";
 import { GraphQLInputObjectType, GraphQLNonNull, GraphQLInt } from "graphql";
+import { RedisPubSub } from "graphql-redis-subscriptions";
 
 import { GraphQLCounter } from "../nodes";
 import Counter from "../../../model/Counter";
@@ -8,6 +9,8 @@ import CounterSchema, { ICounter } from "../../../model/CounterSchema";
 type Payload = {
   counter: ICounter;
 };
+
+const pubsub = new RedisPubSub();
 
 const CounterInputDataType = new GraphQLInputObjectType({
   name: "CounterInputData",
@@ -35,6 +38,7 @@ const UpdateCounterMutation = mutationWithClientMutationId({
     //console.log(counterInput);
     const counter = await Counter.changeCounter(counterInput);
     //console.log(counter)
+    pubsub.publish("counterChanged", counter);
     return { _id: counter._id.toString() };
   }
 });

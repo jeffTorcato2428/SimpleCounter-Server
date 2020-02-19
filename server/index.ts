@@ -9,10 +9,13 @@ import redis from "redis";
 import socketio from "socket.io";
 import redisAdapter from "socket.io-redis";
 import graphqlHTTP from "express-graphql";
+import { GraphQLError, execute, subscribe } from "graphql";
+import { SubscriptionServer } from "subscriptions-transport-ws";
+import expressPlayground from 'graphql-playground-middleware-express';
+
 
 import Counter from "./model/Counter";
 import { schema } from "./data/schema";
-import { GraphQLError } from "graphql";
 
 dotenv.config();
 const app = express();
@@ -52,40 +55,15 @@ app.use(
   })
 );
 
-const server = http.createServer(app);
-const io = socketio(server);
-
-io.adapter(
-  redisAdapter({
-    host: "localhost",
-    port: 6379,
-    pubClient: redisPublisher,
-    subClient: redisSubscriber
-  })
+app.get(
+  '/playground',
+  expressPlayground({
+    endpoint: '/api/graphql',
+    subscriptionEndpoint: `ws://localhost:3001/subscriptions`,
+  }),
 );
 
-io.on("connection", socket => {
-  const cid = "5e413c741c9d440000647d78";
-  Counter.getCounter(cid)
-    .then(data => {
-      socket.emit("socket connection", {
-        counter: data.counter
-      });
-    })
-    .catch(err => console.error(err));
-
-  socket.on("counter change", ({ counter }) => {
-    Counter.changeCounter(counter)
-      .then(data => {
-        socket.broadcast.emit("server response", { counter: data.counter });
-      })
-      .catch(err => console.error(err));
-  });
-
-  socket.on("disconnect", () => {
-    io.emit("user disconnected");
-  });
-});
+const server = http.createServer(app);
 
 if (typeof process.env.MONGO_URL == "undefined") {
   throw new Error("MongoDB Url is not set");
@@ -98,9 +76,23 @@ connect(process.env.MONGO_URL, {
   .then((result: any) => {
     console.log("[Connected to database]");
     const port = process.env.PORT;
-    server.listen(port, () =>
-      console.log(`Express server is running on http://localhost:${port}`)
-    );
+    server.listen(port, () => {
+      new SubscriptionServer(
+        {
+          execute,
+          subscribe,
+          schema: schema
+        },
+        {
+          server: server,
+          path: "/subscriptions"
+        }
+      );
+      console.log(`Express server is running on http://localhost:${port}`);
+      console.log(
+        `Subscriptions are running on ws://localhost:${port}/subscriptions`
+      );
+    });
   })
   .catch((err: any) => console.log(err));
 
