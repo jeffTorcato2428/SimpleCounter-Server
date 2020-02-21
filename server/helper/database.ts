@@ -1,27 +1,45 @@
-import { MongoClient, Db } from "mongodb";
+import CounterSchema from "../model/CounterSchema";
+import { RedisPubSub } from "graphql-redis-subscriptions";
+import { connect } from "mongoose";
 
-// const Mongo_URI =
-//   "mongodb+srv://jeff:R9cz6xXtpUHcb4q9@practicecluster-x5udc.mongodb.net/test?retryWrites=true&w=majority";
-// const mongoClient = new MongoClient(Mongo_URI, { useNewUrlParser: true });
-// let database: Db;
-// mongoClient.connect(err => {
-//   console.log("[Connected to Database]")
-//   database = mongoClient.db("test");
-// });
+class MongoHelper {
+  MONGO_URL: string;
+  pubsub: RedisPubSub;
 
-const Mongo_URI =
-  "mongodb+srv://jeff:R9cz6xXtpUHcb4q9@practicecluster-x5udc.mongodb.net/test?retryWrites=true&w=majority";
-const mongoClient = new MongoClient(Mongo_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+  constructor() {
+    if (typeof process.env.MONGO_URL == "undefined") {
+      throw new Error("MongoDB Url is not set");
+    } else {
+      this.MONGO_URL = process.env.MONGO_URL;
+    }
 
-const mongoConnect = async () => {
-  await mongoClient.connect();
-  console.log("Connected successfully to MongoDB");
-  const database = mongoClient.db("test");
-  const collection = database.collection("count");
-  return collection;
-};
+    this.pubsub = new RedisPubSub();
+    this.mongoConnect = this.mongoConnect.bind(this);
+    this.mongoWatch = this.mongoWatch.bind(this);
+  }
 
-export default mongoConnect;
+  mongoConnect = async () => {
+    try {
+      await connect(this.MONGO_URL, {
+        useUnifiedTopology: true,
+        useNewUrlParser: true
+      });
+      console.log("[Connected to Database]");
+      this.mongoWatch();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  mongoWatch = () => {
+    return CounterSchema.watch().on("change", data => {
+      //console.log(data);
+      this.pubsub.publish("counterChanged", {
+        ...data.documentKey,
+        ...data.updateDescription.updatedFields
+      });
+    });
+  };
+}
+
+export default MongoHelper;

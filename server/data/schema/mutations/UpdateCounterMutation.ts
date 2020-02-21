@@ -38,7 +38,7 @@ const UpdateCounterMutation = mutationWithClientMutationId({
     //console.log(counterInput);
     const counter = await Counter.changeCounter(counterInput);
     //console.log(counter)
-    pubsub.publish("counterChanged", counter);
+    //pubsub.publish("counterChanged", counter);
     return { _id: counter._id.toString() };
   }
 });

@@ -2,25 +2,19 @@ import dotenv from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
 import pino from "express-pino-logger";
-import { connect } from "mongoose";
 import * as http from "http";
 import cors from "cors";
-import redis from "redis";
-import socketio from "socket.io";
-import redisAdapter from "socket.io-redis";
 import graphqlHTTP from "express-graphql";
 import { GraphQLError, execute, subscribe } from "graphql";
 import { SubscriptionServer } from "subscriptions-transport-ws";
-import expressPlayground from 'graphql-playground-middleware-express';
+import expressPlayground from "graphql-playground-middleware-express";
 
-
-import Counter from "./model/Counter";
 import { schema } from "./data/schema";
+import MongoHelper from "./helper/database";
 
 dotenv.config();
 const app = express();
-const redisPublisher = redis.createClient();
-const redisSubscriber = redis.createClient();
+const mongoHelper = new MongoHelper();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -30,12 +24,6 @@ app.use(cors());
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(JSON.stringify({ greeting: `Sup!` }));
-});
-
-app.get("/api/greeting", (req, res) => {
-  const name = req.query.name || "World";
-  res.setHeader("Content-Type", "application/json");
-  res.send(JSON.stringify({ greeting: `Hello ${name}!` }));
 });
 
 app.use(
@@ -56,25 +44,18 @@ app.use(
 );
 
 app.get(
-  '/playground',
+  "/playground",
   expressPlayground({
-    endpoint: '/api/graphql',
-    subscriptionEndpoint: `ws://localhost:3001/subscriptions`,
-  }),
+    endpoint: "/api/graphql",
+    subscriptionEndpoint: `ws://localhost:3001/subscriptions`
+  })
 );
 
 const server = http.createServer(app);
 
-if (typeof process.env.MONGO_URL == "undefined") {
-  throw new Error("MongoDB Url is not set");
-}
-
-connect(process.env.MONGO_URL, {
-  useUnifiedTopology: true,
-  useNewUrlParser: true
-})
-  .then((result: any) => {
-    console.log("[Connected to database]");
+mongoHelper
+  .mongoConnect()
+  .then(() => {
     const port = process.env.PORT;
     server.listen(port, () => {
       new SubscriptionServer(
@@ -94,7 +75,9 @@ connect(process.env.MONGO_URL, {
       );
     });
   })
-  .catch((err: any) => console.log(err));
+  .catch(err => {
+    console.log(err);
+  });
 
 process.on("uncaughtException", function(err) {
   console.error(err);
