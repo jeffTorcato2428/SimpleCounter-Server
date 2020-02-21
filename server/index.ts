@@ -7,10 +7,11 @@ import cors from "cors";
 import graphqlHTTP from "express-graphql";
 import { GraphQLError, execute, subscribe } from "graphql";
 import { SubscriptionServer } from "subscriptions-transport-ws";
-import expressPlayground from "graphql-playground-middleware-express";
 
 import { schema } from "./data/schema";
 import MongoHelper from "./helper/database";
+import GraphQLHttpHandler from "./helper/graphQLHandler";
+import GraphQLPlayground from "./helper/graphQLPlayground";
 
 dotenv.config();
 const app = express();
@@ -26,38 +27,15 @@ app.get("/", (req, res) => {
   res.send(JSON.stringify({ greeting: `Sup!` }));
 });
 
-app.use(
-  "/api/graphql",
-  graphqlHTTP({
-    schema: schema,
-    pretty: true,
-    graphiql: true,
-    customFormatErrorFn: (err: GraphQLError) => {
-      if (!err.originalError) {
-        return err;
-      }
-      const message = err.message || "An error occured.";
-      const data = err.originalError.stack;
-      return { message: message, data: data };
-    }
-  })
-);
+app.use("/api/graphql", GraphQLHttpHandler());
 
-app.get(
-  "/playground",
-  expressPlayground({
-    endpoint: "/api/graphql",
-    subscriptionEndpoint: `ws://localhost:3001/subscriptions`
-  })
-);
-
-const server = http.createServer(app);
+app.get("/playground", GraphQLPlayground());
 
 mongoHelper
   .mongoConnect()
   .then(() => {
     const port = process.env.PORT;
-    server.listen(port, () => {
+    const server = app.listen(port, () => {
       new SubscriptionServer(
         {
           execute,
