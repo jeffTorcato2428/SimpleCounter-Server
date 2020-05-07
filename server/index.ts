@@ -1,11 +1,8 @@
 import dotenv from "dotenv";
 import express from "express";
 import bodyParser from "body-parser";
-import pino from "express-pino-logger";
-import * as http from "http";
 import cors from "cors";
-import graphqlHTTP from "express-graphql";
-import { GraphQLError, execute, subscribe } from "graphql";
+import { execute, subscribe } from "graphql";
 import { SubscriptionServer } from "subscriptions-transport-ws";
 
 import { schema } from "./data/schema";

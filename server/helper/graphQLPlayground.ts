@@ -7,4 +7,4 @@ const GraphQLPlayground = () => {
   });
 };
 
-export default GraphQLPlayground
+export default GraphQLPlayground;
